@@ -1,99 +1,103 @@
 
 #include "app.h"
 
-#include "esp_log.h"
+#include "activeObject.h"
+#include "events.h"
+#include <stdio.h>
 
-namespace App
-{
-    static const char* TAG = "APP"; 
+enum class State {
+    INIT,
+    IDLE,
+    ACTIVE
+};
 
-    Application::Application( void ) : _eventTaskHandle( nullptr )
-    {
-        _eventQueue = xQueueCreate( 10, sizeof( EventMessage )); 
-    }
+class SensorActor : public ActiveObject {
+public:
+    SensorActor() : ActiveObject("Sensor", 4096, 10), _state(State::INIT) {}
 
-    Application& Application::GetInstance( void )
-    {
-        static Application instance; 
-        return instance; 
-    }
-
-    /**
-     * @brief   Application start 
-     * @note    Creates task which is taged to a specific core 
-     * @param   none
-     * @return  none
-     */
-    void Application::Start( void )
-    {
-        BaseType_t state = pdFALSE; 
-
-        ESP_LOGI( TAG, "Starting application..." ); 
-
-        state = xTaskCreatePinnedToCore(    eventHandlerTask, 
-                                            "Event Handler", 
-                                            4096, 
-                                            nullptr, 
-                                            2, 
-                                            &_eventTaskHandle, 
-                                            1 ); 
-        ESP_ERROR_CHECK( state );
-    }
-
-    void Application::PostEvent( AppEvent event, void *data )
-    {
-        BaseType_t state = pdFALSE;
-
-        EventMessage msg = { event, data }; 
-        state = xQueueSend( _eventQueue, &msg, portMAX_DELAY ); 
-
-        ESP_ERROR_CHECK( state ); 
-    }
-
-    void Application::eventHandlerTask( void* args )
-    {
-        ESP_LOGI( TAG, "Event Handler Task started on Core %d", xPortGetCoreID( ));
-
-        EventMessage msg; 
-
-        for( ;; )
-        {
-            if( xQueueReceive( GetInstance( )._eventQueue, &msg, portMAX_DELAY ))
-            {
-                switch( msg.event )
-                {
-                    case AppEvent::SENSOR_UPDATE: 
-                    {
-                        ESP_LOGI( TAG, "Processing SENSOR_UPDATE event" );
-                        break; 
-                    }
-
-                    case AppEvent::WIFI_CONNECTED: 
-                    {
-                        ESP_LOGI( TAG, "Processing WIFI_CONNECTED event" );
-                        break; 
-                    }
-
-                    case AppEvent::WIDI_DISCONNECTED: 
-                    {
-                        ESP_LOGI( TAG, "Processing WIFI_DISCONNECTED event" );
-                        break; 
-                    }
-
-                    case AppEvent::UI_REFRESH: 
-                    {
-                        ESP_LOGI( TAG, "Processing UI_REFRESH event" );
-                        break; 
-                    }
-
-                    case AppEvent::NONE: 
-                    default: 
-                    {
-                        ESP_LOGI( TAG, "Received wrong Event - do nothing" );
-                        break; 
-                    }
+    void Dispatcher(Event* e) override {
+        switch (_state) {
+            case State::INIT:
+                if (dynamic_cast<OnStart*>(e)) {
+                    printf("[Sensor] INIT -> IDLE\n");
+                    _state = State::IDLE;
+                    _timer.Start(pdMS_TO_TICKS(500), new OnStart());
                 }
-            }
+                break;
+
+            case State::IDLE:
+                if (dynamic_cast<OnStart*>(e)) {
+                    printf("[Sensor] IDLE -> ACTIVE\n");
+                    _state = State::ACTIVE;
+                    EventBus::get().publish(new MeasurementEvent(42.0f));
+                    _state = State::IDLE;
+                    _timer.Start(pdMS_TO_TICKS(500), new OnStart());
+                }
+                break;
+
+            default:
+                break;
         }
     }
-}
+
+private:
+    State _state;
+};
+
+class DisplayActor : public ActiveObject {
+public:
+    DisplayActor() : ActiveObject("Display", 4096, 10), _state(State::INIT) {
+        EventBus::get().subscribe<MeasurementEvent>([this](MeasurementEvent* e) {
+            this->Post(new MeasurementEvent(*e));
+        });
+    }
+
+    void Dispatcher(Event* e) override {
+        if (dynamic_cast<ScreenRefreshEvent*>(e)) {
+            printf("[Display] 🔄 Refresh triggered\n");
+            _timer.Start(pdMS_TO_TICKS(750), new ScreenRefreshEvent());
+            return;
+        }
+
+        switch (_state) {
+            case State::INIT:
+                if (dynamic_cast<OnStart*>(e)) {
+                    printf("[Display] INIT -> IDLE\n");
+                    _state = State::IDLE;
+                    _timer.Start(pdMS_TO_TICKS(750), new ScreenRefreshEvent());
+                }
+                break;
+
+            case State::IDLE:
+                if (auto* m = dynamic_cast<MeasurementEvent*>(e)) {
+                    printf("[Display] IDLE -> ACTIVE\n");
+                    _state = State::ACTIVE;
+                    printf("📟 Display: %.2f\n", m->getValue());
+                    _state = State::IDLE;
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+private:
+    State _state;
+};
+
+class LoggerActor : public ActiveObject {
+public:
+    LoggerActor() : ActiveObject("Logger", 4096, 10) {
+        EventBus::get().subscribe<MeasurementEvent>([this](MeasurementEvent* e) {
+            this->Post(new MeasurementEvent(*e));
+        });
+    }
+
+    void Dispatcher(Event* e) override {
+        if (auto* m = dynamic_cast<MeasurementEvent*>(e)) {
+            printf("[Logger] 📝 Value logged: %.2f\n", m->getValue());
+        }
+    }
+};
+
