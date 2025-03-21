@@ -18,6 +18,12 @@ namespace App
         return instance; 
     }
 
+    /**
+     * @brief   Application start 
+     * @note    Creates task which is taged to a specific core 
+     * @param   none
+     * @return  none
+     */
     void Application::Start( void )
     {
         BaseType_t state = pdFALSE; 
