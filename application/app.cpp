@@ -5,6 +5,10 @@
 #include "events.h"
 #include <stdio.h>
 
+namespace App
+{
+
+
 enum class State {
     INIT,
     IDLE,
@@ -18,7 +22,7 @@ public:
     void Dispatcher(Event* e) override {
         switch (_state) {
             case State::INIT:
-                if (dynamic_cast<OnStart*>(e)) {
+                if (e->getType() == Event::Type::OnStart) {
                     printf("[Sensor] INIT -> IDLE\n");
                     _state = State::IDLE;
                     _timer.Start(pdMS_TO_TICKS(500), new OnStart());
@@ -26,7 +30,7 @@ public:
                 break;
 
             case State::IDLE:
-                if (dynamic_cast<OnStart*>(e)) {
+                if (e->getType() == Event::Type::OnStart) {
                     printf("[Sensor] IDLE -> ACTIVE\n");
                     _state = State::ACTIVE;
                     EventBus::get().publish(new MeasurementEvent(42.0f));
@@ -47,13 +51,13 @@ private:
 class DisplayActor : public ActiveObject {
 public:
     DisplayActor() : ActiveObject("Display", 4096, 10), _state(State::INIT) {
-        EventBus::get().subscribe<MeasurementEvent>([this](MeasurementEvent* e) {
-            this->Post(new MeasurementEvent(*e));
+        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) {
+            this->Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
         });
     }
 
     void Dispatcher(Event* e) override {
-        if (dynamic_cast<ScreenRefreshEvent*>(e)) {
+        if (e->getType() == Event::Type::ScreenRefresh) {
             printf("[Display] 🔄 Refresh triggered\n");
             _timer.Start(pdMS_TO_TICKS(750), new ScreenRefreshEvent());
             return;
@@ -61,7 +65,7 @@ public:
 
         switch (_state) {
             case State::INIT:
-                if (dynamic_cast<OnStart*>(e)) {
+                if (e->getType() == Event::Type::OnStart) {
                     printf("[Display] INIT -> IDLE\n");
                     _state = State::IDLE;
                     _timer.Start(pdMS_TO_TICKS(750), new ScreenRefreshEvent());
@@ -69,7 +73,8 @@ public:
                 break;
 
             case State::IDLE:
-                if (auto* m = dynamic_cast<MeasurementEvent*>(e)) {
+                if (e->getType() == Event::Type::Measurement) {
+                    auto* m = static_cast<MeasurementEvent*>(e);
                     printf("[Display] IDLE -> ACTIVE\n");
                     _state = State::ACTIVE;
                     printf("📟 Display: %.2f\n", m->getValue());
@@ -89,15 +94,31 @@ private:
 class LoggerActor : public ActiveObject {
 public:
     LoggerActor() : ActiveObject("Logger", 4096, 10) {
-        EventBus::get().subscribe<MeasurementEvent>([this](MeasurementEvent* e) {
-            this->Post(new MeasurementEvent(*e));
+        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) {
+            this->Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
         });
     }
 
     void Dispatcher(Event* e) override {
-        if (auto* m = dynamic_cast<MeasurementEvent*>(e)) {
+        if (e->getType() == Event::Type::Measurement) {
+            auto* m = static_cast<MeasurementEvent*>(e);
             printf("[Logger] 📝 Value logged: %.2f\n", m->getValue());
         }
     }
 };
 
+void AppStart( void )
+{
+    static SensorActor sensor;
+    static DisplayActor display;
+    static LoggerActor logger;
+
+    sensor.Start();
+    display.Start();
+    logger.Start();
+
+    sensor.Post(new OnStart());
+    display.Post(new OnStart());
+}
+
+}

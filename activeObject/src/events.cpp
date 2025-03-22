@@ -1,17 +1,18 @@
+
 #include "events.h"
+
 
 EventBus& EventBus::get() {
     static EventBus instance;
     return instance;
 }
 
-void EventBus::subscribe(const std::string& eventType, HandlerFunc handler) {
-    _handlers[eventType].push_back(handler);
+void EventBus::subscribe(Event::Type type, HandlerFunc handler) {
+    _handlers[type].push_back(handler);
 }
 
 void EventBus::publish(Event* e) {
-    std::string type = typeid(*e).name();
-    auto it = _handlers.find(type);
+    auto it = _handlers.find(e->getType());
     if (it != _handlers.end()) {
         for (auto& handler : it->second) {
             handler(e);

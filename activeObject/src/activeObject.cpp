@@ -4,7 +4,7 @@
 #include <typeinfo>
 
 ActiveObject::ActiveObject(const std::string& name, size_t stackSize, size_t queueSize)
-    : _name(name), _timer(name + ".timer", false, [this](Event* e) { this->Post(e); }) {
+    : _timer(name + ".timer", false, [this](Event* e) { this->Post(e); }), _name(name)  {
     _queue = xQueueCreate(queueSize, sizeof(Event*));
     xTaskCreate(taskDispatcher, _name.c_str(), stackSize, this, 1, &_taskHandle);
 }
@@ -41,7 +41,8 @@ void ActiveObject::eventLoop() {
                 for (UBaseType_t i = 0; i < count; ++i) {
                     if (xQueuePeek(_queue, &e, 0) == pdPASS && e->getPriority() == static_cast<Event::Priority>(p)) {
                         xQueueReceive(_queue, &e, 0);
-                        printf("[%s] Handling Event: %s (Priority: %d)\n", _name.c_str(), typeid(*e).name(), static_cast<int>(e->getPriority()));
+                        printf("[%s] Handling Event: Type %d (Priority: %d)\n",
+                               _name.c_str(), static_cast<int>(e->getType()), static_cast<int>(e->getPriority()));
                         Dispatcher(e);
                         delete e;
                         break;

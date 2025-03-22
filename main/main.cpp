@@ -13,6 +13,8 @@
 #include "events.h"
 #include <stdio.h>
 
+#include "app.h"
+
 static const char* TAG = "MAIN"; 
 
 extern "C" void app_main(void)
@@ -33,15 +35,6 @@ extern "C" void app_main(void)
 
     ESP_LOGI( TAG, "System initialized"); 
 
+    App::AppStart( ); 
 
-    static SensorActor sensor;
-    static DisplayActor display;
-    static LoggerActor logger;
-
-    sensor.Start();
-    display.Start();
-    logger.Start();
-
-    sensor.Post(new OnStart());
-    display.Post(new OnStart());
 }
