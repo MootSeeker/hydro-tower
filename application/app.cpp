@@ -50,9 +50,11 @@ private:
 
 class DisplayActor : public ActiveObject {
 public:
-    DisplayActor() : ActiveObject("Display", 4096, 10), _state(State::INIT) {
-        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) {
-            this->Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
+    DisplayActor() : ActiveObject("Display", 4096, 10), _state(State::INIT) 
+    {
+        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) 
+        {
+            this->Post(e);
         });
     }
 
@@ -93,9 +95,11 @@ private:
 
 class LoggerActor : public ActiveObject {
 public:
-    LoggerActor() : ActiveObject("Logger", 4096, 10) {
-        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) {
-            this->Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
+    LoggerActor() : ActiveObject("Logger", 4096, 10)
+    {
+        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) 
+        {
+            this->Post(e);
         });
     }
 
