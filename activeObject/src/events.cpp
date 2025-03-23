@@ -1,6 +1,4 @@
-
 #include "events.h"
-
 
 EventBus& EventBus::get() {
     static EventBus instance;
@@ -12,28 +10,21 @@ void EventBus::subscribe(Event::Type type, HandlerFunc handler) {
 }
 
 void EventBus::publish(Event* e) {
-    auto it = _handlers.find(e->getType());
-    if (it != _handlers.end()) {
-        for (auto& handler : it->second) {
-            Event* copy = nullptr;
-            switch (e->getType()) {
-                case Event::Type::Measurement:
-                    copy = new MeasurementEvent(*static_cast<MeasurementEvent*>(e));
-                    break;
-                case Event::Type::ScreenRefresh:
-                    copy = new ScreenRefreshEvent(*static_cast<ScreenRefreshEvent*>(e));
-                    break;
-                case Event::Type::OnStart:
-                    copy = new OnStart(*static_cast<OnStart*>(e));
-                    break;
-                case Event::Type::ButtonClicked:
-                    copy = new ButtonClicked(*static_cast<ButtonClicked*>(e));
-                    break;
-                default:
-                    break;
-            }
-            if (copy) handler(copy);
+    std::map<Event::Type, std::vector<HandlerFunc>>::iterator found = _handlers.find(e->getType());
+    if (found != _handlers.end()) {
+        std::vector<HandlerFunc>& handlers = found->second;
+        for (size_t i = 0; i < handlers.size(); ++i) {
+            handlers[i](e);
         }
     }
-    delete e;
+}
+
+const char* Event::typeToString(Event::Type type) {
+    switch (type) {
+        case Event::Type::OnStart: return "OnStart";
+        case Event::Type::Measurement: return "Measurement";
+        case Event::Type::ScreenRefresh: return "ScreenRefresh";
+        case Event::Type::ButtonClicked: return "ButtonClicked";
+        default: return "Unknown";
+    }
 }

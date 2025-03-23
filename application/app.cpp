@@ -1,13 +1,9 @@
-
 #include "app.h"
-
 #include "activeObject.h"
 #include "events.h"
 #include <stdio.h>
 
-namespace App
-{
-
+namespace App {
 
 enum class State {
     INIT,
@@ -50,13 +46,7 @@ private:
 
 class DisplayActor : public ActiveObject {
 public:
-    DisplayActor() : ActiveObject("Display", 4096, 10), _state(State::INIT) 
-    {
-        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) 
-        {
-            this->Post(e);
-        });
-    }
+    DisplayActor() : ActiveObject("Display", 4096, 10), _state(State::INIT) {}
 
     void Dispatcher(Event* e) override {
         if (e->getType() == Event::Type::ScreenRefresh) {
@@ -76,10 +66,10 @@ public:
 
             case State::IDLE:
                 if (e->getType() == Event::Type::Measurement) {
-                    auto* m = static_cast<MeasurementEvent*>(e);
+                    MeasurementEvent* measurement = static_cast<MeasurementEvent*>(e);
                     printf("[Display] IDLE -> ACTIVE\n");
                     _state = State::ACTIVE;
-                    printf("📟 Display: %.2f\n", m->getValue());
+                    printf("📟 Display: %.2f\n", measurement->getValue());
                     _state = State::IDLE;
                 }
                 break;
@@ -95,27 +85,25 @@ private:
 
 class LoggerActor : public ActiveObject {
 public:
-    LoggerActor() : ActiveObject("Logger", 4096, 10)
-    {
-        EventBus::get().subscribe(Event::Type::Measurement, [this](Event* e) 
-        {
-            this->Post(e);
-        });
-    }
+    LoggerActor() : ActiveObject("Logger", 4096, 10) {}
 
     void Dispatcher(Event* e) override {
         if (e->getType() == Event::Type::Measurement) {
-            auto* m = static_cast<MeasurementEvent*>(e);
-            printf("[Logger] 📝 Value logged: %.2f\n", m->getValue());
+            MeasurementEvent* measurement = static_cast<MeasurementEvent*>(e);
+            printf("[Logger] 📝 Value logged: %.2f\n", measurement->getValue());
         }
     }
 };
 
-void AppStart( void )
-{
-    static SensorActor sensor;
-    static DisplayActor display;
-    static LoggerActor logger;
+static SensorActor sensor;
+static DisplayActor display;
+static LoggerActor logger;
+
+void AppStart() {
+    EventBus::get().subscribe(Event::Type::Measurement, [](Event* e) {
+        display.Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
+        logger.Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
+    });
 
     sensor.Start();
     display.Start();
@@ -125,4 +113,4 @@ void AppStart( void )
     display.Post(new OnStart());
 }
 
-}
+} // namespace App

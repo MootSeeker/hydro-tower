@@ -1,10 +1,16 @@
+// activeObject.cpp
 #include "activeObject.h"
 #include <cstring>
 #include <stdio.h>
-#include <typeinfo>
+#include "events.h"
 
 ActiveObject::ActiveObject(const std::string& name, size_t stackSize, size_t queueSize)
-    : _timer(name + ".timer", false, [this](Event* e) { this->Post(e); }), _name(name)  {
+    : _name(name),
+      _timer(name + ".timer", false, [this](Event* e) {
+          if (e != nullptr) {
+              this->Post(e);
+          }
+      }) {
     _queue = xQueueCreate(queueSize, sizeof(Event*));
     xTaskCreate(taskDispatcher, _name.c_str(), stackSize, this, 1, &_taskHandle);
 }
@@ -19,17 +25,20 @@ bool ActiveObject::Start() {
 }
 
 BaseType_t ActiveObject::Post(Event* e) {
+    if (e == nullptr) return pdFAIL;
     return xQueueSend(_queue, &e, portMAX_DELAY);
 }
 
 BaseType_t ActiveObject::PostISR(Event* e) {
+    if (e == nullptr) return pdFAIL;
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xQueueSendFromISR(_queue, &e, &xHigherPriorityTaskWoken);
     return xHigherPriorityTaskWoken;
 }
 
 void ActiveObject::taskDispatcher(void* data) {
-    static_cast<ActiveObject*>(data)->eventLoop();
+    ActiveObject* object = static_cast<ActiveObject*>(data);
+    object->eventLoop();
 }
 
 void ActiveObject::eventLoop() {
@@ -39,10 +48,10 @@ void ActiveObject::eventLoop() {
             for (int p = 0; p <= 2; ++p) {
                 UBaseType_t count = uxQueueMessagesWaiting(_queue);
                 for (UBaseType_t i = 0; i < count; ++i) {
-                    if (xQueuePeek(_queue, &e, 0) == pdPASS && e->getPriority() == static_cast<Event::Priority>(p)) {
+                    if (xQueuePeek(_queue, &e, 0) == pdPASS && e != nullptr && e->getPriority() == static_cast<Event::Priority>(p)) {
                         xQueueReceive(_queue, &e, 0);
-                        printf("[%s] Handling Event: Type %d (Priority: %d)\n",
-                               _name.c_str(), static_cast<int>(e->getType()), static_cast<int>(e->getPriority()));
+                        printf("[%s] Handling Event: %s (Priority: %d)\n",
+                               _name.c_str(), Event::typeToString(e->getType()), static_cast<int>(e->getPriority()));
                         Dispatcher(e);
                         delete e;
                         break;
