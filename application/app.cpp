@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 #include "button.h"
+#include "wifi.h"
+
 
 namespace App {
 
@@ -100,14 +102,17 @@ public:
 
 
 void AppStart() {
+    static WiFiActor wifi;
     static SensorActor sensor;
     static DisplayActor display;
     static LoggerActor logger;
 
-     static ButtonActor button1(GPIO_NUM_1);
- static ButtonActor button2(GPIO_NUM_2);
- static ButtonActor button3(GPIO_NUM_3);
- static ButtonActor button4(GPIO_NUM_10);
+    static ButtonActor button1(GPIO_NUM_1);
+    static ButtonActor button2(GPIO_NUM_2);
+    static ButtonActor button3(GPIO_NUM_3);
+    static ButtonActor button4(GPIO_NUM_10);
+
+    wifi.Configure("MySSID", "MyPassword");
 
     // Subscriptions: Jeder Actor erhält eine geklonte Kopie
     EventBus::get().subscribe(Event::Type::Measurement, [](Event* e) {
@@ -119,6 +124,7 @@ void AppStart() {
     });
 
     // Start der Active Objects
+    wifi.Start();
     sensor.Start();
     display.Start();
     logger.Start();
@@ -129,6 +135,7 @@ void AppStart() {
     button4.Start();
 
     // OnStart initialisieren mit Quell-Angabe
+    wifi.Post(new OnStart("App"));
     sensor.Post(new OnStart("Sensor"));
     display.Post(new OnStart("Display"));
 }

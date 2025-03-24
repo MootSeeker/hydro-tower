@@ -17,19 +17,19 @@ const char* Event::getSource() const {
     return _source;
 }
 
-Event* OnStart::clone() const {
+Event* OnStart::Clone() const {
     return new OnStart(getSource());
 }
 
-Event* MeasurementEvent::clone() const {
+Event* MeasurementEvent::Clone() const {
     return new MeasurementEvent(_value, getSource());
 }
 
-Event* ScreenRefreshEvent::clone() const {
+Event* ScreenRefreshEvent::Clone() const {
     return new ScreenRefreshEvent(getSource());
 }
 
-Event* ButtonClicked::clone() const {
+Event* ButtonClicked::Clone() const {
     return new ButtonClicked(_buttonID, _state, getSource());
 }
 
@@ -60,7 +60,7 @@ void EventBus::publish(Event* e) {
     if (found != _handlers.end()) {
         std::vector<HandlerFunc>& handlers = found->second;
         for (size_t i = 0; i < handlers.size(); ++i) {
-            Event* cloned = e->clone();
+            Event* cloned = e->Clone();
 #if ENABLE_EVENT_TRACE
             printf("[Event:%05lu] Clone to handler %zu (%p)\n", cloned->getId(), i, static_cast<void*>(cloned));
 #endif
