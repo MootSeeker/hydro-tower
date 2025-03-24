@@ -118,13 +118,16 @@ void AppStart() {
     display.Start();
     logger.Start();
 
-    // OnStart initialisieren
-    sensor.Post(new OnStart());
-    display.Post(new OnStart());
+    // OnStart initialisieren mit Quell-Angabe
+    sensor.Post(new OnStart("Sensor"));
+    display.Post(new OnStart("Display"));
 
-    // 🔍 Test: prüfe, ob clone() funktioniert
-    MeasurementEvent* testEvent = new MeasurementEvent(99.9f);
-    EventBus::get().publish(testEvent);  // EventBus übernimmt delete intern
+    // 🔍 Testevent mit Source "App" erzeugen
+    EventBus::get().publish(new MeasurementEvent(99.9f, "App"));
+
+    MeasurementEvent* test = new MeasurementEvent(66.9f, "App");
+    printf("TEST: source = %s\n", test->getSource());
+    EventBus::get().publish(test);
 }
 
 } // namespace App

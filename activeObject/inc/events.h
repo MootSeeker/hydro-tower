@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <vector>
+#include <cstdint>
 
 class Event {
 public:
@@ -23,26 +24,33 @@ public:
     virtual ~Event() {}
     virtual Type getType() const = 0;
     virtual Priority getPriority() const { return Priority::Normal; }
-    virtual Event* Clone( ) const = 0; 
+    virtual Event* clone() const = 0;
 
     static const char* typeToString(Type type);
-};
 
-// Event types
+    Event(const char* source);
+    uint32_t getId() const;
+    const char* getSource() const;
+
+private:
+    uint32_t _id;
+    const char* _source;
+};
 
 class OnStart : public Event {
 public:
+    OnStart(const char* source = "Unknown") : Event(source) {}
     Type getType() const override { return Type::OnStart; }
-    Event* Clone( ) const override { return new OnStart(*this); }
+    Event* clone() const override;
 };
 
 class MeasurementEvent : public Event {
 public:
-    MeasurementEvent(float value) : _value(value) {}
+    MeasurementEvent(float value, const char* source = "Unknown")
+        : Event(source), _value(value) {}
     Type getType() const override { return Type::Measurement; }
     float getValue() const { return _value; }
-
-    Event* Clone( ) const override { return new MeasurementEvent(_value); }
+    Event* clone() const override;
 
 private:
     float _value;
@@ -50,26 +58,25 @@ private:
 
 class ScreenRefreshEvent : public Event {
 public:
+    ScreenRefreshEvent(const char* source = "Unknown") : Event(source) {}
     Type getType() const override { return Type::ScreenRefresh; }
     Priority getPriority() const override { return Priority::Low; }
-    Event* Clone( ) const override { return new ScreenRefreshEvent(*this); }
+    Event* clone() const override;
 };
 
 class ButtonClicked : public Event {
 public:
-    ButtonClicked(int id, int state) : _buttonID(id), _state(state) {}
+    ButtonClicked(int id, int state, const char* source = "Unknown")
+        : Event(source), _buttonID(id), _state(state) {}
     Type getType() const override { return Type::ButtonClicked; }
     int getID() const { return _buttonID; }
     int getState() const { return _state; }
-
-    Event* Clone( ) const override { return new ButtonClicked(*this); }
+    Event* clone() const override;
 
 private:
     int _buttonID;
     int _state;
 };
-
-// EventBus
 
 class EventBus {
 public:
