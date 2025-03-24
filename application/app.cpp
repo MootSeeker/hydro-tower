@@ -100,17 +100,31 @@ static DisplayActor display;
 static LoggerActor logger;
 
 void AppStart() {
+    static SensorActor sensor;
+    static DisplayActor display;
+    static LoggerActor logger;
+
+    // Subscriptions: Jeder Actor erhält eine geklonte Kopie
     EventBus::get().subscribe(Event::Type::Measurement, [](Event* e) {
-        display.Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
-        logger.Post(new MeasurementEvent(*static_cast<MeasurementEvent*>(e)));
+        display.Post(e);
     });
 
+    EventBus::get().subscribe(Event::Type::Measurement, [](Event* e) {
+        logger.Post(e);
+    });
+
+    // Start der Active Objects
     sensor.Start();
     display.Start();
     logger.Start();
 
+    // OnStart initialisieren
     sensor.Post(new OnStart());
     display.Post(new OnStart());
+
+    // 🔍 Test: prüfe, ob clone() funktioniert
+    MeasurementEvent* testEvent = new MeasurementEvent(99.9f);
+    EventBus::get().publish(testEvent);  // EventBus übernimmt delete intern
 }
 
 } // namespace App

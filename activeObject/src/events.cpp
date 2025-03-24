@@ -1,5 +1,7 @@
 #include "events.h"
 
+#include <cstdio>
+
 EventBus& EventBus::get() {
     static EventBus instance;
     return instance;
@@ -14,9 +16,15 @@ void EventBus::publish(Event* e) {
     if (found != _handlers.end()) {
         std::vector<HandlerFunc>& handlers = found->second;
         for (size_t i = 0; i < handlers.size(); ++i) {
-            handlers[i](e);
+            Event* cloned = e->Clone();
+            printf("[EventBus] Dispatching %s to handler %zu (clone: %p)\n",
+                   Event::typeToString(e->getType()), i, static_cast<void*>(cloned));
+            handlers[i](cloned);
         }
     }
+    printf("[EventBus] Cleaning up original event %p (%s)\n",
+           static_cast<void*>(e), Event::typeToString(e->getType()));
+    delete e;
 }
 
 const char* Event::typeToString(Event::Type type) {
