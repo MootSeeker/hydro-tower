@@ -3,6 +3,8 @@
 #include "events.h"
 #include <stdio.h>
 
+#include "button.h"
+
 namespace App {
 
 enum class State {
@@ -21,7 +23,7 @@ public:
                 if (e->getType() == Event::Type::OnStart) {
                     printf("[Sensor] INIT -> IDLE\n");
                     _state = State::IDLE;
-                    _timer.Start(pdMS_TO_TICKS(500), new OnStart());
+                    _timer.Start(pdMS_TO_TICKS(1500), new OnStart());
                 }
                 break;
 
@@ -31,7 +33,7 @@ public:
                     _state = State::ACTIVE;
                     EventBus::get().publish(new MeasurementEvent(42.0f));
                     _state = State::IDLE;
-                    _timer.Start(pdMS_TO_TICKS(500), new OnStart());
+                    _timer.Start(pdMS_TO_TICKS(1500), new OnStart());
                 }
                 break;
 
@@ -51,7 +53,7 @@ public:
     void Dispatcher(Event* e) override {
         if (e->getType() == Event::Type::ScreenRefresh) {
             printf("[Display] 🔄 Refresh triggered\n");
-            _timer.Start(pdMS_TO_TICKS(750), new ScreenRefreshEvent());
+            _timer.Start(pdMS_TO_TICKS(2500), new ScreenRefreshEvent());
             return;
         }
 
@@ -60,7 +62,7 @@ public:
                 if (e->getType() == Event::Type::OnStart) {
                     printf("[Display] INIT -> IDLE\n");
                     _state = State::IDLE;
-                    _timer.Start(pdMS_TO_TICKS(750), new ScreenRefreshEvent());
+                    _timer.Start(pdMS_TO_TICKS(2500), new ScreenRefreshEvent());
                 }
                 break;
 
@@ -95,14 +97,17 @@ public:
     }
 };
 
-static SensorActor sensor;
-static DisplayActor display;
-static LoggerActor logger;
+
 
 void AppStart() {
     static SensorActor sensor;
     static DisplayActor display;
     static LoggerActor logger;
+
+     static ButtonActor button1(GPIO_NUM_1);
+ static ButtonActor button2(GPIO_NUM_2);
+ static ButtonActor button3(GPIO_NUM_3);
+ static ButtonActor button4(GPIO_NUM_10);
 
     // Subscriptions: Jeder Actor erhält eine geklonte Kopie
     EventBus::get().subscribe(Event::Type::Measurement, [](Event* e) {
@@ -118,16 +123,14 @@ void AppStart() {
     display.Start();
     logger.Start();
 
+    button1.Start();
+    button2.Start();
+    button3.Start();
+    button4.Start();
+
     // OnStart initialisieren mit Quell-Angabe
     sensor.Post(new OnStart("Sensor"));
     display.Post(new OnStart("Display"));
-
-    // 🔍 Testevent mit Source "App" erzeugen
-    EventBus::get().publish(new MeasurementEvent(99.9f, "App"));
-
-    MeasurementEvent* test = new MeasurementEvent(66.9f, "App");
-    printf("TEST: source = %s\n", test->getSource());
-    EventBus::get().publish(test);
 }
 
 } // namespace App

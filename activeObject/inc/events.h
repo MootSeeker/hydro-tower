@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <cstdint>
+#include <atomic>
 
 class Event {
 public:
@@ -12,7 +13,8 @@ public:
         OnStart,
         Measurement,
         ScreenRefresh,
-        ButtonClicked
+        ButtonClicked, 
+        SystemReset
     };
 
     enum class Priority {
@@ -32,9 +34,10 @@ public:
     uint32_t getId() const;
     const char* getSource() const;
 
-private:
-    uint32_t _id;
-    const char* _source;
+    protected:
+        uint32_t _id;
+        const char* _source;
+        static std::atomic<uint32_t> _eventIdCounter;
 };
 
 class OnStart : public Event {
@@ -77,6 +80,13 @@ private:
     int _buttonID;
     int _state;
 };
+
+class SystemResetEvent : public Event {
+    public:
+        SystemResetEvent(const char* source = "Unknown") : Event(source) {}
+        Type getType() const override { return Type::SystemReset; }
+        Event* clone() const override { return new SystemResetEvent(_source); }
+    };
 
 class EventBus {
 public:

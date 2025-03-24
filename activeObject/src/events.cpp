@@ -4,7 +4,7 @@
 
 #define ENABLE_EVENT_TRACE 1
 
-static std::atomic<uint32_t> _eventIdCounter = 1;
+std::atomic<uint32_t> Event::_eventIdCounter {1};
 
 Event::Event(const char* source)
     : _id(_eventIdCounter.fetch_add(1)), _source(source) {}
