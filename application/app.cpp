@@ -127,18 +127,34 @@ void AppStart() {
         logger.Post(e);
     });
 
-    // Start der Active Objects
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    // Start der Active Objects mit 5ms Delay dazwischen
     wifi.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
+
     sensor.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
+
     display.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
+
     logger.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
 
     button1.Start();
-    button2.Start();
-    button3.Start();
-    button4.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
 
-    // OnStart initialisieren mit Quell-Angabe
+    button2.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
+
+    button3.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
+
+    button4.Start();
+    vTaskDelay(pdMS_TO_TICKS(5));
+
+/*     // OnStart initialisieren mit Quell-Angabe
     wifi.Post(new OnStart("App"));
     sensor.Post(new OnStart("Sensor"));
     display.Post(new OnStart("Display"));
@@ -146,8 +162,8 @@ void AppStart() {
     // 🔄 JSON für MQTT aufbereiten:
     char json[128];
     snprintf(json, sizeof(json),
-                  R"({"sensor":"hydro","value":%.2f})", 23.23f);
-    wifi.SendPayload(json);  // ⬅️ Queue in WiFiComm
+             R"({"sensor":"hydro","value":%.2f})", 23.23f);
+    wifi.SendPayload(json);  // ⬅️ Queue in WiFiComm */
 }
 
 } // namespace App

@@ -151,11 +151,11 @@ void WiFiActor::wifiEventHandler(void* arg, esp_event_base_t base, int32_t id, v
         ESP_LOGW(TAG, "WiFi Disconnected → Retrying...");
         esp_wifi_connect();
         self->_connected = false;
-        self->Post(new OnStart("WiFiDisconnected")); // Placeholder
+        self->Post(new WiFiDisconnectedEvent( )); 
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         ESP_LOGI(TAG, "WiFi Connected → Got IP");
         self->_connected = true;
-        self->Post(new OnStart("WiFiConnected")); // Placeholder
+        self->Post( new WiFiConnectedEvent( )); 
     }
 }
 

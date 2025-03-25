@@ -39,6 +39,7 @@ const char* Event::typeToString(Event::Type type) {
         case Event::Type::Measurement: return "Measurement";
         case Event::Type::ScreenRefresh: return "ScreenRefresh";
         case Event::Type::ButtonClicked: return "ButtonClicked";
+        case Event::Type::WiFiDisconnected: return "WiFiDisconnected";
         default: return "UnknownEventType";
     }
 }
