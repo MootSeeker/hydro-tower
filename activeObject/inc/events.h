@@ -157,7 +157,7 @@ class WiFiConnectedEvent : public Event {
             Type getType() const override { return Type::WiFiFailed; }
             Event* Clone() const override { return new WiFiShutdownEvent(_source); }
         };
-
+   
 /** Event Bus ................................................................................ */
 class EventBus {
 public:
