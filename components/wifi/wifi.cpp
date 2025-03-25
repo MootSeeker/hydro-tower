@@ -57,7 +57,7 @@ WiFiActor::WiFiActor() : ActiveObject( "WiFi", 4096, 10 ), _connected( false )
     esp_event_loop_create_default( );
     esp_netif_create_default_wifi_sta( );
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT( );
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT( );         
     esp_wifi_init( &cfg );
 
     esp_event_handler_instance_register( WIFI_EVENT,

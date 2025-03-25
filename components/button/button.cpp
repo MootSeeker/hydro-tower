@@ -13,7 +13,6 @@ ButtonActor::ButtonActor(gpio_num_t pin)
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     gpio_config(&io_conf);
 
-    gpio_install_isr_service(0);
     gpio_isr_handler_add(pin, isrHandler, this);
 }
 

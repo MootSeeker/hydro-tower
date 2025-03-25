@@ -12,7 +12,7 @@ ActiveObject::ActiveObject(const std::string& name, size_t stackSize, size_t que
           }
       }) {
     _queue = xQueueCreate(queueSize, sizeof(Event*));
-    xTaskCreate(taskDispatcher, _name.c_str(), stackSize, this, 1, &_taskHandle);
+    xTaskCreatePinnedToCore(taskDispatcher, _name.c_str(), stackSize, this, 1, &_taskHandle, 1);
 }
 
 ActiveObject::~ActiveObject() {
