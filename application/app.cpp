@@ -7,6 +7,7 @@
 #include "wifi.h"
 
 
+
 namespace App {
 
 enum class State {
@@ -33,7 +34,10 @@ public:
                 if (e->getType() == Event::Type::OnStart) {
                     printf("[Sensor] IDLE -> ACTIVE\n");
                     _state = State::ACTIVE;
-                    EventBus::get().publish(new MeasurementEvent(42.0f));
+
+                    float value = 42.0f;
+                    EventBus::get().publish(new MeasurementEvent(value));
+
                     _state = State::IDLE;
                     _timer.Start(pdMS_TO_TICKS(1500), new OnStart());
                 }
@@ -138,6 +142,12 @@ void AppStart() {
     wifi.Post(new OnStart("App"));
     sensor.Post(new OnStart("Sensor"));
     display.Post(new OnStart("Display"));
+
+    // 🔄 JSON für MQTT aufbereiten:
+    char json[128];
+    snprintf(json, sizeof(json),
+                  R"({"sensor":"hydro","value":%.2f})", 23.23f);
+    wifi.SendPayload(json);  // ⬅️ Queue in WiFiComm
 }
 
 } // namespace App

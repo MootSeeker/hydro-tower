@@ -9,27 +9,70 @@
 
 static const char* TAG = "WiFiActor";
 
+WiFiComm::WiFiComm( ) : _txQueue( xQueueCreate( 10, sizeof( std::string* )))
+{
+
+}
+
+void WiFiComm::Start( )
+{
+    xTaskCreate( taskLoop, "WiFiCommTask", 4096, this, 5, &_task ); 
+}
+
+void WiFiComm::Send( const std::string& payload )
+{
+    std::string* msg = new std::string( payload ); 
+
+    if( xQueueSend( _txQueue, &msg, 0 ) != pdPASS )
+    {
+        delete msg; 
+        ESP_LOGW("WiFiComm", "⚠️ Queue full, message dropped");
+    } else {
+        ESP_LOGI("WiFiComm", "📥 Queued: %s", msg->c_str());
+    }
+}
+
+void WiFiComm::taskLoop( void* args )
+{
+    WiFiComm* self = static_cast<WiFiComm*>( args );
+    std::string* msg = nullptr;
+
+    while( pdTRUE ) 
+    {
+        if ( xQueueReceive( self->_txQueue, &msg, portMAX_DELAY ) == pdPASS ) 
+        {
+            ESP_LOGI("WiFiComm", "📤 Sending: %s", msg->c_str( ));
+            delete msg;
+        }
+    } 
+}
+
+
+
+
 // Konstruktor
-WiFiActor::WiFiActor()
-    : ActiveObject("WiFi", 4096, 10), _connected(false) {
-    esp_netif_init();
-    esp_event_loop_create_default();
-    esp_netif_create_default_wifi_sta();
+WiFiActor::WiFiActor() : ActiveObject( "WiFi", 4096, 10 ), _connected( false ) 
+{
+    esp_netif_init( );
+    esp_event_loop_create_default( );
+    esp_netif_create_default_wifi_sta( );
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT( );
+    esp_wifi_init( &cfg );
 
-    esp_event_handler_instance_register(WIFI_EVENT,
-                                        ESP_EVENT_ANY_ID,
-                                        &WiFiActor::wifiEventHandler,
-                                        this,
-                                        nullptr);
+    esp_event_handler_instance_register( WIFI_EVENT,
+                                         ESP_EVENT_ANY_ID,
+                                         &WiFiActor::wifiEventHandler,
+                                         this,
+                                         nullptr );
 
-    esp_event_handler_instance_register(IP_EVENT,
-                                        IP_EVENT_STA_GOT_IP,
-                                        &WiFiActor::wifiEventHandler,
-                                        this,
-                                        nullptr);
+    esp_event_handler_instance_register( IP_EVENT,
+                                         IP_EVENT_STA_GOT_IP,
+                                         &WiFiActor::wifiEventHandler,
+                                         this,
+                                         nullptr );
+
+    _comm.Start( ); 
 }
 
 // Konfiguration
@@ -55,6 +98,7 @@ void WiFiActor::Dispatcher(Event* e) {
     switch (_state) {
         case State::INIT:
             if (e->getType() == Event::Type::OnStart) {
+                printf("[WiFi] INIT → CONNECTING\n");
                 _state = State::CONNECTING;
                 Configure(_ssid, _password);
             }
@@ -62,21 +106,35 @@ void WiFiActor::Dispatcher(Event* e) {
 
         case State::CONNECTING:
             if (e->getType() == Event::Type::WiFiConnected) {
-                _state = State::CONNECTED;
                 printf("[WiFi] ✅ Connected\n");
+                _state = State::CONNECTED;
             } else if (e->getType() == Event::Type::WiFiDisconnected) {
-                printf("[WiFi] ❌ Failed to connect\n");
+                printf("[WiFi] ❌ Disconnected while connecting\n");
+                _state = State::CONNECTING;
+                esp_wifi_connect();
+            } else if (e->getType() == Event::Type::WiFiShutdown) {
+                printf("[WiFi] 🔻 Shutdown while connecting\n");
+                Shutdown();
+                _state = State::INIT;
             }
             break;
 
         case State::CONNECTED:
             if (e->getType() == Event::Type::WiFiGotIP) {
                 WiFiGotIPEvent* ipEvent = static_cast<WiFiGotIPEvent*>(e);
-                printf("[WiFi] Got IP: %s\n", ipEvent->getIP().c_str());
+                printf("[WiFi] 📡 Got IP: %s\n", ipEvent->getIP().c_str());
             } else if (e->getType() == Event::Type::WiFiDisconnected) {
+                printf("[WiFi] ⚠️ Connection lost\n");
                 _state = State::CONNECTING;
-                printf("[WiFi] 🔄 Reconnecting...\n");
                 esp_wifi_connect();
+            } else if (e->getType() == Event::Type::WiFiDisconnectedByRequest) {
+                printf("[WiFi] 🔌 Disconnected manually\n");
+                Disconnect();
+                _state = State::INIT;
+            } else if (e->getType() == Event::Type::WiFiShutdown) {
+                printf("[WiFi] 🔻 Shutdown requested\n");
+                Shutdown();
+                _state = State::INIT;
             }
             break;
     }
@@ -99,4 +157,15 @@ void WiFiActor::wifiEventHandler(void* arg, esp_event_base_t base, int32_t id, v
         self->_connected = true;
         self->Post(new OnStart("WiFiConnected")); // Placeholder
     }
+}
+
+void WiFiActor::Disconnect( void ) {
+    esp_wifi_disconnect();
+    ESP_LOGI("WiFi", "Disconnected manually");
+}
+
+void WiFiActor::Shutdown( void ) {
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    ESP_LOGI("WiFi", "WiFi shut down");
 }

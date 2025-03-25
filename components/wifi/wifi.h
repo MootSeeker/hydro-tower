@@ -9,15 +9,42 @@
 #include "esp_netif.h"
 #include <string>
 
-class WiFiActor : public ActiveObject {
+/**
+ * @brief   WiFi communication class 
+ * 
+ */
+class WiFiComm 
+{
+    public:
+        WiFiComm();
+        ~WiFiComm() = default;
     
+        void Start();                                  // startet interne Task
+        void Send(const std::string& payload);         // fügt Nachricht zur Queue hinzu
+    
+    private:
+        static void taskLoop(void* arg);               // loop zum Senden
+        QueueHandle_t _txQueue;
+        TaskHandle_t _task;
+};
 
-
+/**
+ * @brief   WiFi Actor - Active Object class 
+ */
+class WiFiActor : public ActiveObject {
 public:
     WiFiActor();
 
     void Dispatcher(Event* e) override;
     void Configure(const std::string& ssid, const std::string& password);
+
+    void Disconnect( void ); 
+    void Shutdown( void ); 
+
+    void SendPayload( const std::string& json ) 
+    {
+        _comm.Send( json );
+    }
 
 private:
     enum class State {
@@ -33,6 +60,8 @@ private:
     std::string _password;
     bool _connected;
     State _state;
+
+    WiFiComm _comm; 
 };
 
 #endif // WIFI_ACTOR_H

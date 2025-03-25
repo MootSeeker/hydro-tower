@@ -20,7 +20,9 @@ public:
         WiFiDisconnected,
         WiFiConnecting,
         WiFiFailed,
-        WiFiGotIP
+        WiFiGotIP, 
+        WiFiShutdown, 
+        WiFiDisconnectedByRequest
     };
 
     enum class Priority {
@@ -141,6 +143,20 @@ class WiFiConnectedEvent : public Event {
     private:
         std::string _ip;
     };
+
+    class WiFiDisconnectedByRequestEvent : public Event {
+        public:
+            WiFiDisconnectedByRequestEvent(const char* source = "WiFi") : Event(source) {}
+            Type getType() const override { return Type::WiFiDisconnected; }
+            Event* Clone() const override { return new WiFiDisconnectedByRequestEvent(_source); }
+        };
+        
+        class WiFiShutdownEvent : public Event {
+        public:
+            WiFiShutdownEvent(const char* source = "WiFi") : Event(source) {}
+            Type getType() const override { return Type::WiFiFailed; }
+            Event* Clone() const override { return new WiFiShutdownEvent(_source); }
+        };
 
 /** Event Bus ................................................................................ */
 class EventBus {
