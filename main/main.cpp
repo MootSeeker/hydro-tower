@@ -9,9 +9,7 @@
 
 #include "nvs_flash.h"
 
-#include "activeObject.h"
-#include "events.h"
-#include <stdio.h>
+#include "driver/gpio.h"
 
 #include "app.h"
 
@@ -32,6 +30,9 @@ extern "C" void app_main(void)
 
     // Initialize the event loop system
     ESP_ERROR_CHECK( esp_event_loop_create_default( )); 
+
+    // Initialize GPIO Interrupt Service Rutine 
+    gpio_install_isr_service( 0 );
 
     ESP_LOGI( TAG, "System initialized"); 
 

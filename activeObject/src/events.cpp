@@ -17,31 +17,43 @@ const char* Event::getSource() const {
     return _source;
 }
 
-Event* OnStart::clone() const {
+Event* OnStart::Clone() const {
     return new OnStart(getSource());
 }
 
-Event* MeasurementEvent::clone() const {
+Event* MeasurementEvent::Clone() const {
     return new MeasurementEvent(_value, getSource());
 }
 
-Event* ScreenRefreshEvent::clone() const {
+Event* ScreenRefreshEvent::Clone() const {
     return new ScreenRefreshEvent(getSource());
 }
 
-Event* ButtonClicked::clone() const {
+Event* ButtonClicked::Clone() const {
     return new ButtonClicked(_buttonID, _state, getSource());
 }
 
 const char* Event::typeToString(Event::Type type) {
-    switch (type) {
+    switch( type ) 
+    {
         case Event::Type::OnStart: return "OnStart";
         case Event::Type::Measurement: return "Measurement";
         case Event::Type::ScreenRefresh: return "ScreenRefresh";
         case Event::Type::ButtonClicked: return "ButtonClicked";
+        case Event::Type::SystemReset: return "SystemReset";
+        case Event::Type::WiFiConnected: return "WiFiConnected";
+        case Event::Type::WiFiDisconnected: return "WiFiDisconnected";
+        case Event::Type::WiFiConnecting: return "WiFiConnecting";
+        case Event::Type::WiFiReconnect: return "WiFiReconnect";
+        case Event::Type::WiFiRestored: return "WiFiRestored";
+        case Event::Type::WiFiFailed: return "WiFiFailed";
+        case Event::Type::WiFiGotIP: return "WiFiGotIP";
+        case Event::Type::WiFiShutdown: return "WiFiShutdown";
+        case Event::Type::WiFiDisconnectedByRequest: return "WiFiDisconnectedByRequest";
         default: return "UnknownEventType";
     }
 }
+
 
 EventBus& EventBus::get() {
     static EventBus instance;
@@ -60,7 +72,7 @@ void EventBus::publish(Event* e) {
     if (found != _handlers.end()) {
         std::vector<HandlerFunc>& handlers = found->second;
         for (size_t i = 0; i < handlers.size(); ++i) {
-            Event* cloned = e->clone();
+            Event* cloned = e->Clone();
 #if ENABLE_EVENT_TRACE
             printf("[Event:%05lu] Clone to handler %zu (%p)\n", cloned->getId(), i, static_cast<void*>(cloned));
 #endif
