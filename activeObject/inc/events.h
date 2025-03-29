@@ -19,6 +19,8 @@ public:
         WiFiConnected,
         WiFiDisconnected,
         WiFiConnecting,
+        WiFiReconnect,
+        WiFiRestored,
         WiFiFailed,
         WiFiGotIP, 
         WiFiShutdown, 
@@ -124,12 +126,26 @@ class WiFiConnectedEvent : public Event {
         Type getType() const override { return Type::WiFiConnecting; }
         Event* Clone() const override { return new WiFiConnectingEvent(_source); }
     };
+
+    class WiFiReconnectEvent : public Event {
+        public:
+            Type getType() const override { return Type::WiFiReconnect; }
+            Event* Clone() const override { return new WiFiReconnectEvent(*this); }
+    };
+        
     
     class WiFiFailedEvent : public Event {
-    public:
-        WiFiFailedEvent(const char* source = "WiFi") : Event(source) {}
-        Type getType() const override { return Type::WiFiFailed; }
-        Event* Clone() const override { return new WiFiFailedEvent(_source); }
+        public:
+            WiFiFailedEvent(const char* source = "Unknown") : Event(source) {}
+            Type getType() const override { return Type::WiFiFailed; }
+            Event* Clone() const override { return new WiFiFailedEvent(*this); }
+    };
+            
+    class WiFiRestoredEvent : public Event {
+        public:
+            WiFiRestoredEvent(const char* source = "Unknown") : Event(source) {}
+            Type getType() const override { return Type::WiFiRestored; }
+            Event* Clone() const override { return new WiFiRestoredEvent(*this); }
     };
     
     class WiFiGotIPEvent : public Event {

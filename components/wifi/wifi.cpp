@@ -108,14 +108,32 @@ void WiFiActor::Dispatcher(Event* e) {
             if (e->getType() == Event::Type::WiFiConnected) {
                 printf("[WiFi] ✅ Connected\n");
                 _state = State::CONNECTED;
-            } else if (e->getType() == Event::Type::WiFiDisconnected) {
+
+                if (_retries > 0) {
+                    Post(new WiFiRestoredEvent("WiFi"));
+                }
+
+                _retries = 0;
+            }
+            else if (e->getType() == Event::Type::WiFiDisconnected) {
                 printf("[WiFi] ❌ Disconnected while connecting\n");
-                _state = State::CONNECTING;
-                esp_wifi_connect();
-            } else if (e->getType() == Event::Type::WiFiShutdown) {
+
+                if (_retries < MAX_RETRIES) {
+                    _retries++;
+                    printf("[WiFi] 🔁 Retry #%d...\n", _retries);
+                    esp_wifi_connect();
+                } else {
+                    printf("[WiFi] ❌ Max retries reached → FAILED\n");
+                    _state = State::FAILED;
+                    _retries = 0;
+                    Post(new WiFiFailedEvent("WiFi"));
+                }
+            }
+            else if (e->getType() == Event::Type::WiFiShutdown) {
                 printf("[WiFi] 🔻 Shutdown while connecting\n");
                 Shutdown();
                 _state = State::INIT;
+                _retries = 0;
             }
             break;
 
@@ -123,41 +141,64 @@ void WiFiActor::Dispatcher(Event* e) {
             if (e->getType() == Event::Type::WiFiGotIP) {
                 WiFiGotIPEvent* ipEvent = static_cast<WiFiGotIPEvent*>(e);
                 printf("[WiFi] 📡 Got IP: %s\n", ipEvent->getIP().c_str());
-            } else if (e->getType() == Event::Type::WiFiDisconnected) {
+            }
+            else if (e->getType() == Event::Type::WiFiDisconnected) {
                 printf("[WiFi] ⚠️ Connection lost\n");
-                _state = State::CONNECTING;
-                esp_wifi_connect();
-            } else if (e->getType() == Event::Type::WiFiDisconnectedByRequest) {
+
+                if (_retries < MAX_RETRIES) {
+                    _retries++;
+                    printf("[WiFi] 🔁 Retry #%d...\n", _retries);
+                    _state = State::CONNECTING;
+                    esp_wifi_connect();
+                } else {
+                    printf("[WiFi] ❌ Max retries reached → FAILED\n");
+                    _state = State::FAILED;
+                    _retries = 0;
+                    Post(new WiFiFailedEvent("WiFi"));
+                }
+            }
+            else if (e->getType() == Event::Type::WiFiDisconnectedByRequest) {
                 printf("[WiFi] 🔌 Disconnected manually\n");
                 Disconnect();
                 _state = State::INIT;
-            } else if (e->getType() == Event::Type::WiFiShutdown) {
+                _retries = 0;
+            }
+            else if (e->getType() == Event::Type::WiFiShutdown) {
                 printf("[WiFi] 🔻 Shutdown requested\n");
                 Shutdown();
                 _state = State::INIT;
+                _retries = 0;
             }
+            break;
+
+        case State::FAILED:
+            printf("[WiFi] ⛔ Ignoring event in FAILED state: %s\n", Event::typeToString(e->getType()));
             break;
     }
 }
+
+
 
 // Event-Handler (Callback aus ESP-IDF)
 void WiFiActor::wifiEventHandler(void* arg, esp_event_base_t base, int32_t id, void* data) {
     WiFiActor* self = static_cast<WiFiActor*>(arg);
 
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START) {
-        ESP_LOGI(TAG, "WiFi STA Start → Connecting...");
-        esp_wifi_connect();
-    } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
-        ESP_LOGW(TAG, "WiFi Disconnected → Retrying...");
-        esp_wifi_connect();
+        ESP_LOGI(TAG, "WiFi STA Start → waiting for connect...");
+        
+    } 
+    else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
+        ESP_LOGW(TAG, "WiFi Disconnected → Posting Event");
         self->_connected = false;
-        self->Post(new WiFiDisconnectedEvent( )); 
-    } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
+        self->Post(new WiFiDisconnectedEvent());  // Dispatcher übernimmt Retry-Logik
+    } 
+    else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         ESP_LOGI(TAG, "WiFi Connected → Got IP");
         self->_connected = true;
-        self->Post( new WiFiConnectedEvent( )); 
+        self->Post(new WiFiConnectedEvent());
     }
 }
+
 
 void WiFiActor::Disconnect( void ) {
     esp_wifi_disconnect();

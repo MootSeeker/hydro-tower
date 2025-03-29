@@ -154,11 +154,12 @@ void AppStart() {
     button4.Start();
     vTaskDelay(pdMS_TO_TICKS(5));
 
-/*     // OnStart initialisieren mit Quell-Angabe
+     // OnStart initialisieren mit Quell-Angabe
     wifi.Post(new OnStart("App"));
-    sensor.Post(new OnStart("Sensor"));
-    display.Post(new OnStart("Display"));
-
+  /*   sensor.Post(new OnStart("Sensor"));
+    display.Post(new OnStart("Display")); */
+    
+/*
     // 🔄 JSON für MQTT aufbereiten:
     char json[128];
     snprintf(json, sizeof(json),

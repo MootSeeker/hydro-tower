@@ -34,15 +34,26 @@ Event* ButtonClicked::Clone() const {
 }
 
 const char* Event::typeToString(Event::Type type) {
-    switch (type) {
+    switch( type ) 
+    {
         case Event::Type::OnStart: return "OnStart";
         case Event::Type::Measurement: return "Measurement";
         case Event::Type::ScreenRefresh: return "ScreenRefresh";
         case Event::Type::ButtonClicked: return "ButtonClicked";
+        case Event::Type::SystemReset: return "SystemReset";
+        case Event::Type::WiFiConnected: return "WiFiConnected";
         case Event::Type::WiFiDisconnected: return "WiFiDisconnected";
+        case Event::Type::WiFiConnecting: return "WiFiConnecting";
+        case Event::Type::WiFiReconnect: return "WiFiReconnect";
+        case Event::Type::WiFiRestored: return "WiFiRestored";
+        case Event::Type::WiFiFailed: return "WiFiFailed";
+        case Event::Type::WiFiGotIP: return "WiFiGotIP";
+        case Event::Type::WiFiShutdown: return "WiFiShutdown";
+        case Event::Type::WiFiDisconnectedByRequest: return "WiFiDisconnectedByRequest";
         default: return "UnknownEventType";
     }
 }
+
 
 EventBus& EventBus::get() {
     static EventBus instance;

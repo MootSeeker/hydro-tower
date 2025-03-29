@@ -47,11 +47,17 @@ public:
     }
 
 private:
+    static constexpr int MAX_RETRIES = 5;
+    
     enum class State {
         INIT,
         CONNECTING,
-        CONNECTED
+        CONNECTED,
+        FAILED  // ➕ Neuer Zustand
     };
+
+
+
 
     static void wifiEventHandler(void* arg, esp_event_base_t event_base,
                              int32_t event_id, void* event_data);
@@ -60,6 +66,7 @@ private:
     std::string _password;
     bool _connected;
     State _state;
+    int _retries = 0;
 
     WiFiComm _comm; 
 };
