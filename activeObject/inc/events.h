@@ -24,7 +24,8 @@ public:
         WiFiFailed,
         WiFiGotIP, 
         WiFiShutdown, 
-        WiFiDisconnectedByRequest
+        WiFiDisconnectedByRequest, 
+        LedControl
     };
 
     enum class Priority {
@@ -173,6 +174,25 @@ class WiFiConnectedEvent : public Event {
             Type getType() const override { return Type::WiFiFailed; }
             Event* Clone() const override { return new WiFiShutdownEvent(_source); }
         };
+
+/** LED Events ............................................................................... */
+class LedControlEvent : public Event {
+    public:
+        enum class Mode {
+            ON, OFF, TOGGLE, BLINK_SLOW, BLINK_FAST
+        };
+    
+        LedControlEvent(Mode mode, const char* source = "Unknown")
+            : Event(source), _mode(mode) {}
+    
+        Type getType() const override { return Type::LedControl; }
+        Event* Clone() const override { return new LedControlEvent(_mode, _source); }
+    
+        Mode getMode() const { return _mode; }
+    
+    private:
+        Mode _mode;
+    };
    
 /** Event Bus ................................................................................ */
 class EventBus {

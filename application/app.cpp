@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "button.h"
+#include "led.h"
 #include "wifi.h"
 
 
@@ -116,6 +117,10 @@ void AppStart() {
     static ButtonActor button3(GPIO_NUM_3);
     static ButtonActor button4(GPIO_NUM_10);
 
+    static LedActor led1(GPIO_NUM_11);
+    static LedActor led2(GPIO_NUM_12);
+    static LedActor led3(GPIO_NUM_13);
+
     wifi.Configure("MySSID", "MyPassword");
 
     // Subscriptions: Jeder Actor erhält eine geklonte Kopie
@@ -156,6 +161,17 @@ void AppStart() {
 
      // OnStart initialisieren mit Quell-Angabe
     wifi.Post(new OnStart("App"));
+
+    led1.Start();
+    led2.Start();
+    led3.Start();
+
+
+        // Setze LED Modi
+        led1.Post(new LedControlEvent(LedControlEvent::Mode::BLINK_SLOW, "app"));
+    
+        
+
   /*   sensor.Post(new OnStart("Sensor"));
     display.Post(new OnStart("Display")); */
     
