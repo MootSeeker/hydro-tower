@@ -33,7 +33,8 @@ public:
         WiFiGotIP, 
         WiFiShutdown, 
         WiFiDisconnectedByRequest, 
-        LedControl
+        LedControl, 
+        LedStop 
     };
 
     enum class Priority {
@@ -196,6 +197,13 @@ class LedControlEvent : public Event {
     private:
         LedMode _mode;
     };
+
+    class LedStopEvent : public Event {
+        public:
+            LedStopEvent(const char* source = "Unknown") : Event(source) {}
+            Type getType() const override { return Type::LedStop; }
+            Event* Clone() const override { return new LedStopEvent(_source); }
+        };
    
 /** Event Bus ................................................................................ */
 class EventBus {

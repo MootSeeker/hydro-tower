@@ -25,6 +25,15 @@ LedActor::LedActor(gpio_num_t pin)
 
 void LedActor::Dispatcher(Event* e)
 {
+    if (e->getType() == Event::Type::LedStop) {
+        _mode = LedMode::OFF;
+        _blinkMode = LedMode::OFF;
+        _timer.Stop();
+        gpio_set_level(_pin, 0);
+        ESP_LOGI("LED", "🛑 Stopped blinking on GPIO %d", _pin);
+        return;
+    }
+    
     if (e->getType() != Event::Type::LedControl)
         return;
 

@@ -3,6 +3,8 @@
 #include "events.h"
 #include <stdio.h>
 
+#include "esp_log.h"
+
 #include "button.h"
 #include "led.h"
 #include "wifi.h"
@@ -123,7 +125,6 @@ void AppStart() {
 
     wifi.Configure("MySSID", "MyPassword");
 
-    // Subscriptions: Jeder Actor erhält eine geklonte Kopie
     EventBus::get().subscribe(Event::Type::Measurement, [](Event* e) {
         display.Post(e);
     });
@@ -132,55 +133,46 @@ void AppStart() {
         logger.Post(e);
     });
 
+      
+
+    // Startup delay
     vTaskDelay(pdMS_TO_TICKS(100));
 
-    // Start der Active Objects mit 5ms Delay dazwischen
-    wifi.Start();
+    wifi.Start();     
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    sensor.Start();
+    sensor.Start();   
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    display.Start();
+    display.Start();  
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    logger.Start();
+    logger.Start();   
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    button1.Start();
+    button1.Start();  
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    button2.Start();
+    button2.Start();  
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    button3.Start();
+    button3.Start();  
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    button4.Start();
+    button4.Start();  
     vTaskDelay(pdMS_TO_TICKS(5));
 
-     // OnStart initialisieren mit Quell-Angabe
-    wifi.Post(new OnStart("App"));
 
     led1.Start();
     led2.Start();
     led3.Start();
 
+    wifi.Post(new OnStart("App"));
 
-        // Setze LED Modi
-        led3.Post(new LedControlEvent(LedMode::BLINK_FAST, "app"));
-        led2.Post(new LedControlEvent(LedMode::BLINK_SLOW, "app"));
-        
-
-  /*   sensor.Post(new OnStart("Sensor"));
-    display.Post(new OnStart("Display")); */
-    
-/*
-    // 🔄 JSON für MQTT aufbereiten:
-    char json[128];
-    snprintf(json, sizeof(json),
-             R"({"sensor":"hydro","value":%.2f})", 23.23f);
-    wifi.SendPayload(json);  // ⬅️ Queue in WiFiComm */
+    // Start LEDs
+    led2.Post(new LedControlEvent(LedMode::BLINK_SLOW, "App"));
+    led3.Post(new LedControlEvent(LedMode::BLINK_SLOW, "App"));
 }
+
 
 } // namespace App
