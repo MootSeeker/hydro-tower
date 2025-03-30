@@ -50,6 +50,7 @@ const char* Event::typeToString(Event::Type type) {
         case Event::Type::WiFiGotIP: return "WiFiGotIP";
         case Event::Type::WiFiShutdown: return "WiFiShutdown";
         case Event::Type::WiFiDisconnectedByRequest: return "WiFiDisconnectedByRequest";
+        case Event::Type::LedControl: return "LedControl";
         default: return "UnknownEventType";
     }
 }

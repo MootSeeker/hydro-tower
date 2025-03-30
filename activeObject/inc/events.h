@@ -8,6 +8,14 @@
 #include <atomic>
 #include <string>
 
+enum class LedMode {
+    ON,
+    OFF,
+    TOGGLE,
+    BLINK_SLOW,
+    BLINK_FAST
+};
+
 class Event {
 public:
     enum class Type {
@@ -178,20 +186,15 @@ class WiFiConnectedEvent : public Event {
 /** LED Events ............................................................................... */
 class LedControlEvent : public Event {
     public:
-        enum class Mode {
-            ON, OFF, TOGGLE, BLINK_SLOW, BLINK_FAST
-        };
-    
-        LedControlEvent(Mode mode, const char* source = "Unknown")
+        LedControlEvent(LedMode mode, const char* source = "Unknown")
             : Event(source), _mode(mode) {}
     
         Type getType() const override { return Type::LedControl; }
         Event* Clone() const override { return new LedControlEvent(_mode, _source); }
-    
-        Mode getMode() const { return _mode; }
+        LedMode getMode() const { return _mode; }
     
     private:
-        Mode _mode;
+        LedMode _mode;
     };
    
 /** Event Bus ................................................................................ */

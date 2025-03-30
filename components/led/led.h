@@ -3,27 +3,25 @@
 #define LED_H
 
 #include "activeObject.h"
-#include "driver/gpio.h"
 #include "events.h"
+#include "driver/gpio.h"
 
-class LedActor : public ActiveObject {
-public:
-    enum class Mode {
-        OFF,
-        ON,
-        TOGGLE,
-        BLINK_SLOW,
-        BLINK_FAST
-    };
+namespace LED
+{
 
-    explicit LedActor(gpio_num_t pin);
-    void Dispatcher(Event* e) override;
-
-private:
-    void applyMode();
-    gpio_num_t _pin;
-    Mode _mode;
-    bool _state;
-};
+    class LedActor : public ActiveObject {
+        public:
+            LedActor(gpio_num_t pin);
+            void Dispatcher(Event* e) override;
+        
+        private:
+        
+            gpio_num_t _pin;
+            LedMode _mode;
+            LedMode _blinkMode = LedMode::OFF;
+            bool _state;
+            Timer _timer;
+        };
+}
 
 #endif // End: LED_H

@@ -117,9 +117,9 @@ void AppStart() {
     static ButtonActor button3(GPIO_NUM_3);
     static ButtonActor button4(GPIO_NUM_10);
 
-    static LedActor led1(GPIO_NUM_11);
-    static LedActor led2(GPIO_NUM_12);
-    static LedActor led3(GPIO_NUM_13);
+    static LED::LedActor led1(GPIO_NUM_11);
+    static LED::LedActor led2(GPIO_NUM_12);
+    static LED::LedActor led3(GPIO_NUM_13);
 
     wifi.Configure("MySSID", "MyPassword");
 
@@ -168,8 +168,8 @@ void AppStart() {
 
 
         // Setze LED Modi
-        led1.Post(new LedControlEvent(LedControlEvent::Mode::BLINK_SLOW, "app"));
-    
+        led3.Post(new LedControlEvent(LedMode::BLINK_FAST, "app"));
+        led2.Post(new LedControlEvent(LedMode::BLINK_SLOW, "app"));
         
 
   /*   sensor.Post(new OnStart("Sensor"));

@@ -1,10 +1,16 @@
 #include "led.h"
 #include "esp_log.h"
 
+namespace LED
+{
 static const char* TAG = "LED";
 
 LedActor::LedActor(gpio_num_t pin)
-    : ActiveObject("LED", 2048, 10), _pin(pin), _mode(Mode::OFF), _state(false)
+    : ActiveObject("LED", 4096, 10),
+      _pin(pin),
+      _mode(LedMode::OFF),
+      _state(false),
+      _timer("led.timer", false, [this](Event* e) { Post(e); })
 {
     gpio_config_t io_conf = {
         .pin_bit_mask = 1ULL << pin,
@@ -19,35 +25,57 @@ LedActor::LedActor(gpio_num_t pin)
 
 void LedActor::Dispatcher(Event* e)
 {
-    if (e->getType() == Event::Type::LedControl) {
-        LedControlEvent* ledEvent = static_cast<LedControlEvent*>(e);
-        _mode = static_cast<Mode>(ledEvent->getMode());
-        applyMode();
-    }
-}
+    if (e->getType() != Event::Type::LedControl)
+        return;
 
-void LedActor::applyMode()
-{
-    switch (_mode) {
-        case Mode::OFF:
-            gpio_set_level(_pin, 0);
-            break;
+    LedControlEvent* ledEvent = static_cast<LedControlEvent*>(e);
+    LedMode mode = ledEvent->getMode();
 
-        case Mode::ON:
+    switch (mode)
+    {
+        case LedMode::ON:
+            _mode = LedMode::ON;
+            _blinkMode = LedMode::OFF;
+            _timer.Stop();
             gpio_set_level(_pin, 1);
             break;
 
-        case Mode::TOGGLE:
+        case LedMode::OFF:
+            _mode = LedMode::OFF;
+            _blinkMode = LedMode::OFF;
+            _timer.Stop();
+            gpio_set_level(_pin, 0);
+            break;
+
+        case LedMode::TOGGLE:
             _state = !_state;
             gpio_set_level(_pin, _state ? 1 : 0);
+            ESP_LOGI("LED", "Toggled GPIO %d → %d", _pin, _state);
+
+            if (_blinkMode == LedMode::BLINK_FAST)
+                _timer.Start(pdMS_TO_TICKS(250), new LedControlEvent(LedMode::TOGGLE, "blink_fast"));
+            else if (_blinkMode == LedMode::BLINK_SLOW)
+                _timer.Start(pdMS_TO_TICKS(1000), new LedControlEvent(LedMode::TOGGLE, "blink_slow"));
             break;
 
-        case Mode::BLINK_SLOW:
-            // Implement blinking logic (e.g. start timer or schedule)
+        case LedMode::BLINK_FAST:
+            _mode = LedMode::TOGGLE;
+            _blinkMode = LedMode::BLINK_FAST;
+            _timer.Stop();
+            _timer.Start(pdMS_TO_TICKS(250), new LedControlEvent(LedMode::TOGGLE, "blink_fast"));
+            ESP_LOGI("LED", "Starting BLINK_FAST on GPIO %d", _pin);
             break;
 
-        case Mode::BLINK_FAST:
-            // Implement blinking logic (e.g. start timer or schedule)
+        case LedMode::BLINK_SLOW:
+            _mode = LedMode::TOGGLE;
+            _blinkMode = LedMode::BLINK_SLOW;
+            _timer.Stop();
+            _timer.Start(pdMS_TO_TICKS(1000), new LedControlEvent(LedMode::TOGGLE, "blink_slow"));
+            ESP_LOGI("LED", "Starting BLINK_SLOW on GPIO %d", _pin);
             break;
     }
+}
+
+
+
 }
