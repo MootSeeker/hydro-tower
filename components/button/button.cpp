@@ -1,11 +1,21 @@
 #include "button.h"
 #include "events.h"
-#include <cstdio>
+#include "esp_log.h"
 
-#define PRESS_THRESHOLD_MS 500
+#define TAG "Button"
+
+#define DOUBLE_CLICK_GAP_MS 300
+#define LONG_PRESS_MS 1000
 
 ButtonActor::ButtonActor(gpio_num_t pin)
-    : ActiveObject("Button", 2048, 10), _pin(pin), _pressStartTick(0), _waitingRelease(false) {
+    : ActiveObject("Button", 2048, 10),
+      _pin(pin),
+      _pressTick(0),
+      _waitingRelease(false),
+      _clickCount(0),
+      _lastClickTick(0), 
+      _deferredAction(ActionType::NONE)
+{
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_ANYEDGE;
     io_conf.mode = GPIO_MODE_INPUT;
@@ -16,45 +26,72 @@ ButtonActor::ButtonActor(gpio_num_t pin)
     gpio_isr_handler_add(pin, isrHandler, this);
 }
 
-void IRAM_ATTR ButtonActor::isrHandler(void* arg) {
+void IRAM_ATTR ButtonActor::isrHandler(void* arg)
+{
     ButtonActor* self = static_cast<ButtonActor*>(arg);
     int level = gpio_get_level(self->_pin);
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
+    BaseType_t hpTaskWoken = pdFALSE;
     TickType_t now = xTaskGetTickCountFromISR();
-    Event* evt = nullptr;
 
     if (level == 0 && !self->_waitingRelease) {
-        self->_pressStartTick = now;
+        self->_pressTick = now;
         self->_waitingRelease = true;
-    } else if (level == 1 && self->_waitingRelease) {
-        TickType_t duration = now - self->_pressStartTick;
-        self->_waitingRelease = false;
-        if (duration >= pdMS_TO_TICKS(PRESS_THRESHOLD_MS)) {
-            evt = new SystemResetEvent("LongPress");
-        } else {
-            evt = new ButtonClicked(self->_pin, 1, "ShortPress");
-        }
     }
+    else if (level == 1 && self->_waitingRelease) {
+        TickType_t duration = now - self->_pressTick;
+        self->_waitingRelease = false;
 
-    if (evt) {
-        self->PostISR(evt);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        if (duration >= pdMS_TO_TICKS(LONG_PRESS_MS)) {
+            self->_deferredAction = ActionType::LONG;
+        } else {
+            TickType_t gap = now - self->_lastClickTick;
+            self->_lastClickTick = now;
+
+            if (gap < pdMS_TO_TICKS(DOUBLE_CLICK_GAP_MS)) {
+                self->_clickCount++;
+                if (self->_clickCount == 2) {
+                    self->_deferredAction = ActionType::DOUBLE;
+                    self->_clickCount = 0;
+                }
+            } else {
+                self->_clickCount = 1;
+                self->_deferredAction = ActionType::SINGLE;
+            }
+        }
+
+        // Post Signal Event (nur ein Marker)
+        self->PostISR(new ButtonClicked(self->_pin, 99));  // Typisches Dummy-Event
+        portYIELD_FROM_ISR(hpTaskWoken);
     }
 }
+
 
 void ButtonActor::Dispatcher(Event* e) {
     switch (e->getType()) {
         case Event::Type::ButtonClicked: {
             ButtonClicked* evt = static_cast<ButtonClicked*>(e);
-            printf("[Button GPIO%d] Short Press\n", evt->getID());
+            ESP_LOGI("Button", "GPIO%d Clicked (%s)", evt->getID(), evt->getState() == 1 ? "Single" : "Unknown");
+
+            // ❌ NICHT wieder Post(evt) o.ä. verwenden!
             break;
         }
+
         case Event::Type::SystemReset: {
-            printf("[Button] Long Press → SYSTEM RESET requested\n");
+            ESP_LOGI("Button", "Long Press → SYSTEM RESET requested");
             break;
         }
+
+        case Event::Type::LedStop: {
+            ESP_LOGI("Button", "Triggered Action: LedStop");
+            break;
+        }
+
         default:
+            ESP_LOGW("Button", "Unhandled Event in Dispatcher");
             break;
     }
+}
+
+void ButtonActor::SetActionEvent(ActionType type, Event* event) {
+    _actionMap[static_cast<size_t>(type)].reset(event);
 }

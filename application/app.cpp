@@ -117,11 +117,16 @@ void AppStart() {
     static ButtonActor button1(GPIO_NUM_1);
     static ButtonActor button2(GPIO_NUM_2);
     static ButtonActor button3(GPIO_NUM_3);
+    
     static ButtonActor button4(GPIO_NUM_10);
+    button4.SetActionEvent( ButtonActor::ActionType::DOUBLE, new LedStopEvent( "App" ));
+    button4.Start();
 
     static LED::LedActor led1(GPIO_NUM_11);
     static LED::LedActor led2(GPIO_NUM_12);
     static LED::LedActor led3(GPIO_NUM_13);
+
+  
 
     wifi.Configure("MySSID", "MyPassword");
 
@@ -131,9 +136,13 @@ void AppStart() {
 
     EventBus::get().subscribe(Event::Type::Measurement, [](Event* e) {
         logger.Post(e);
-    });
+    }); 
 
-      
+    EventBus::get().subscribe(Event::Type::LedStop, [](Event* e) {
+        led1.Post(e);
+        led2.Post(e);
+        led3.Post(e);
+    });
 
     // Startup delay
     vTaskDelay(pdMS_TO_TICKS(100));
