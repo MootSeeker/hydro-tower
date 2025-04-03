@@ -8,7 +8,7 @@
 #define LONG_PRESS_MS 1000
 
 ButtonActor::ButtonActor(gpio_num_t pin)
-    : ActiveObject("Button", 2048, 10),
+    : ActiveObject("Button", 4096, 10),
       _pin(pin),
       _pressTick(0),
       _waitingRelease(false),
@@ -66,28 +66,33 @@ void IRAM_ATTR ButtonActor::isrHandler(void* arg)
 }
 
 
-void ButtonActor::Dispatcher(Event* e) {
-    switch (e->getType()) {
+void ButtonActor::Dispatcher(Event* e)
+{
+    switch (e->getType())
+    {
         case Event::Type::ButtonClicked: {
             ButtonClicked* evt = static_cast<ButtonClicked*>(e);
-            ESP_LOGI("Button", "GPIO%d Clicked (%s)", evt->getID(), evt->getState() == 1 ? "Single" : "Unknown");
+            int id = evt->getID();
+            int state = evt->getState();
 
-            // ❌ NICHT wieder Post(evt) o.ä. verwenden!
+            if (state == 1) {
+                ESP_LOGI("Button", "GPIO%d Clicked (Single)", id);
+            } else if (state == 2) {
+                ESP_LOGI("Button", "GPIO%d Clicked (Double)", id);
+            } else {
+                ESP_LOGI("Button", "GPIO%d Clicked (Unknown)", id);
+            }
+
             break;
         }
 
         case Event::Type::SystemReset: {
-            ESP_LOGI("Button", "Long Press → SYSTEM RESET requested");
-            break;
-        }
-
-        case Event::Type::LedStop: {
-            ESP_LOGI("Button", "Triggered Action: LedStop");
+            ESP_LOGI("Button", "🛑 Long Press → SYSTEM RESET requested");
             break;
         }
 
         default:
-            ESP_LOGW("Button", "Unhandled Event in Dispatcher");
+            ESP_LOGW("Button", "Unhandled event in dispatcher");
             break;
     }
 }
