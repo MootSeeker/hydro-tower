@@ -1,6 +1,10 @@
 #include "button.h"
 #include "events.h"
+#include "eventBus.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
 
 #define TAG "Button"
 
@@ -23,80 +27,62 @@ ButtonActor::ButtonActor(gpio_num_t pin)
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     gpio_config(&io_conf);
 
+    gpio_install_isr_service(0);
     gpio_isr_handler_add(pin, isrHandler, this);
 }
 
 void IRAM_ATTR ButtonActor::isrHandler(void* arg)
 {
     ButtonActor* self = static_cast<ButtonActor*>(arg);
-    int level = gpio_get_level(self->_pin);
-    BaseType_t hpTaskWoken = pdFALSE;
-    TickType_t now = xTaskGetTickCountFromISR();
-
-    if (level == 0 && !self->_waitingRelease) {
-        self->_pressTick = now;
-        self->_waitingRelease = true;
-    }
-    else if (level == 1 && self->_waitingRelease) {
-        TickType_t duration = now - self->_pressTick;
-        self->_waitingRelease = false;
-
-        if (duration >= pdMS_TO_TICKS(LONG_PRESS_MS)) {
-            self->_deferredAction = ActionType::LONG;
-        } else {
-            TickType_t gap = now - self->_lastClickTick;
-            self->_lastClickTick = now;
-
-            if (gap < pdMS_TO_TICKS(DOUBLE_CLICK_GAP_MS)) {
-                self->_clickCount++;
-                if (self->_clickCount == 2) {
-                    self->_deferredAction = ActionType::DOUBLE;
-                    self->_clickCount = 0;
-                }
-            } else {
-                self->_clickCount = 1;
-                self->_deferredAction = ActionType::SINGLE;
-            }
-        }
-
-        // Post Signal Event (nur ein Marker)
-        self->PostISR(new ButtonClicked(self->_pin, 99));  // Typisches Dummy-Event
-        portYIELD_FROM_ISR(hpTaskWoken);
-    }
+    self->_eventPending = true; // 🔁 Flag setzen
 }
-
 
 void ButtonActor::Dispatcher(Event* e)
 {
-    switch (e->getType())
-    {
-        case Event::Type::ButtonClicked: {
-            ButtonClicked* evt = static_cast<ButtonClicked*>(e);
-            int id = evt->getID();
-            int state = evt->getState();
+    if (!_eventPending)
+        return;
 
-            if (state == 1) {
-                ESP_LOGI("Button", "GPIO%d Clicked (Single)", id);
-            } else if (state == 2) {
-                ESP_LOGI("Button", "GPIO%d Clicked (Double)", id);
-            } else {
-                ESP_LOGI("Button", "GPIO%d Clicked (Unknown)", id);
+    _eventPending = false;
+
+    TickType_t now = xTaskGetTickCount();
+    int level = gpio_get_level(_pin);
+
+    if (level == 0) 
+    { // Button pressed
+        _pressTick = now;
+        _waitingRelease = true;
+    } 
+    else if (_waitingRelease) 
+    { // Button released
+        _waitingRelease = false;
+        TickType_t pressDuration = now - _pressTick;
+
+        if (pressDuration >= pdMS_TO_TICKS(LONG_PRESS_MS)) 
+        {
+            EventBus::get().publish(new ButtonClicked(static_cast<int>(_pin), ButtonClicked::ActionType::LONG, "ButtonActor"));
+            _clickCount = 0;
+        } 
+        else 
+        {
+            if (_clickCount == 0) 
+            {
+                _lastClickTick = now;
             }
-
-            break;
+            _clickCount++;
         }
-
-        case Event::Type::SystemReset: {
-            ESP_LOGI("Button", "🛑 Long Press → SYSTEM RESET requested");
-            break;
-        }
-
-        default:
-            ESP_LOGW("Button", "Unhandled event in dispatcher");
-            break;
     }
-}
 
-void ButtonActor::SetActionEvent(ActionType type, Event* event) {
-    _actionMap[static_cast<size_t>(type)].reset(event);
+    // Double-click Timing-Fenster prüfen
+    if (_clickCount > 0 && (now - _lastClickTick > pdMS_TO_TICKS(DOUBLE_CLICK_GAP_MS))) 
+    {
+        if (_clickCount == 1) 
+        {
+            EventBus::get().publish(new ButtonClicked(static_cast<int>(_pin), ButtonClicked::ActionType::SINGLE, "ButtonActor"));
+        } 
+        else if (_clickCount == 2)  
+        {
+            EventBus::get().publish(new ButtonClicked(static_cast<int>(_pin), ButtonClicked::ActionType::DOUBLE, "ButtonActor"));
+        }
+        _clickCount = 0;
+    }
 }

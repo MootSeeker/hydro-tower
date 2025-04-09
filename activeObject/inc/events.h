@@ -1,3 +1,4 @@
+// events.h
 #ifndef EVENTS_H
 #define EVENTS_H
 
@@ -54,13 +55,12 @@ public:
     uint32_t getId() const;
     const char* getSource() const;
 
-    protected:
-        uint32_t _id;
-        const char* _source;
-        static std::atomic<uint32_t> _eventIdCounter;
+protected:
+    uint32_t _id;
+    const char* _source;
+    static std::atomic<uint32_t> _eventIdCounter;
 };
 
-/** Initial Event .......................................................................... */
 class OnStart : public Event {
 public:
     OnStart(const char* source = "Unknown") : Event(source) {}
@@ -68,8 +68,6 @@ public:
     Event* Clone() const override;
 };
 
-
-/** Sensor Events .......................................................................... */
 class MeasurementEvent : public Event {
 public:
     MeasurementEvent(float value, const char* source = "Unknown")
@@ -82,8 +80,6 @@ private:
     float _value;
 };
 
-
-/** Display Events ......................................................................... */
 class ScreenRefreshEvent : public Event {
 public:
     ScreenRefreshEvent(const char* source = "Unknown") : Event(source) {}
@@ -92,130 +88,105 @@ public:
     Event* Clone() const override;
 };
 
-
-/** Button Events .......................................................................... */
-class ButtonClicked : public Event {
-public:
-    ButtonClicked(int id, int state, const char* source = "Unknown")
-        : Event(source), _buttonID(id), _state(state) {}
-    Type getType() const override { return Type::ButtonClicked; }
-    int getID() const { return _buttonID; }
-    int getState() const { return _state; }
-    Event* Clone() const override;
-
-private:
-    int _buttonID;
-    int _state;
-};
-
 class SystemResetEvent : public Event {
-    public:
-        SystemResetEvent(const char* source = "Unknown") : Event(source) {}
-        Type getType() const override { return Type::SystemReset; }
-        Event* Clone() const override { return new SystemResetEvent(_source); }
-    };
-
-/** WiFi Events ............................................................................ */
-class WiFiConnectedEvent : public Event {
-    public:
-        WiFiConnectedEvent(const char* source = "WiFi") : Event(source) {}
-        Type getType() const override { return Type::WiFiConnected; }
-        Event* Clone() const override { return new WiFiConnectedEvent(_source); }
-    };
-    
-    class WiFiDisconnectedEvent : public Event {
-    public:
-        WiFiDisconnectedEvent(const char* source = "WiFi") : Event(source) {}
-        Type getType() const override { return Type::WiFiDisconnected; }
-        Event* Clone() const override { return new WiFiDisconnectedEvent(_source); }
-    };
-    
-    class WiFiConnectingEvent : public Event {
-    public:
-        WiFiConnectingEvent(const char* source = "WiFi") : Event(source) {}
-        Type getType() const override { return Type::WiFiConnecting; }
-        Event* Clone() const override { return new WiFiConnectingEvent(_source); }
-    };
-
-    class WiFiReconnectEvent : public Event {
-        public:
-            Type getType() const override { return Type::WiFiReconnect; }
-            Event* Clone() const override { return new WiFiReconnectEvent(*this); }
-    };
-        
-    
-    class WiFiFailedEvent : public Event {
-        public:
-            WiFiFailedEvent(const char* source = "Unknown") : Event(source) {}
-            Type getType() const override { return Type::WiFiFailed; }
-            Event* Clone() const override { return new WiFiFailedEvent(*this); }
-    };
-            
-    class WiFiRestoredEvent : public Event {
-        public:
-            WiFiRestoredEvent(const char* source = "Unknown") : Event(source) {}
-            Type getType() const override { return Type::WiFiRestored; }
-            Event* Clone() const override { return new WiFiRestoredEvent(*this); }
-    };
-    
-    class WiFiGotIPEvent : public Event {
-    public:
-        WiFiGotIPEvent(const std::string& ip, const char* source = "WiFi")
-            : Event(source), _ip(ip) {}
-        Type getType() const override { return Type::WiFiGotIP; }
-        const std::string& getIP() const { return _ip; }
-        Event* Clone() const override { return new WiFiGotIPEvent(_ip, _source); }
-    
-    private:
-        std::string _ip;
-    };
-
-    class WiFiDisconnectedByRequestEvent : public Event {
-        public:
-            WiFiDisconnectedByRequestEvent(const char* source = "WiFi") : Event(source) {}
-            Type getType() const override { return Type::WiFiDisconnected; }
-            Event* Clone() const override { return new WiFiDisconnectedByRequestEvent(_source); }
-        };
-        
-        class WiFiShutdownEvent : public Event {
-        public:
-            WiFiShutdownEvent(const char* source = "WiFi") : Event(source) {}
-            Type getType() const override { return Type::WiFiFailed; }
-            Event* Clone() const override { return new WiFiShutdownEvent(_source); }
-        };
-
-/** LED Events ............................................................................... */
-class LedControlEvent : public Event {
-    public:
-        LedControlEvent(LedMode mode, const char* source = "Unknown")
-            : Event(source), _mode(mode) {}
-    
-        Type getType() const override { return Type::LedControl; }
-        Event* Clone() const override { return new LedControlEvent(_mode, _source); }
-        LedMode getMode() const { return _mode; }
-    
-    private:
-        LedMode _mode;
-    };
-
-    class LedStopEvent : public Event {
-        public:
-            LedStopEvent(const char* source = "Unknown") : Event(source) {}
-            Type getType() const override { return Type::LedStop; }
-            Event* Clone() const override { return new LedStopEvent(_source); }
-        };
-   
-/** Event Bus ................................................................................ */
-class EventBus {
 public:
-    using HandlerFunc = std::function<void(Event*)>;
+    SystemResetEvent(const char* source = "Unknown") : Event(source) {}
+    Type getType() const override { return Type::SystemReset; }
+    Event* Clone() const override { return new SystemResetEvent(_source); }
+};
 
-    static EventBus& get();
-    void subscribe(Event::Type type, HandlerFunc handler);
-    void publish(Event* e);
+class WiFiConnectedEvent : public Event {
+public:
+    WiFiConnectedEvent(const char* source = "WiFi") : Event(source) {}
+    Type getType() const override { return Type::WiFiConnected; }
+    Event* Clone() const override { return new WiFiConnectedEvent(_source); }
+};
+
+class WiFiDisconnectedEvent : public Event {
+public:
+    WiFiDisconnectedEvent(const char* source = "WiFi") : Event(source) {}
+    Type getType() const override { return Type::WiFiDisconnected; }
+    Event* Clone() const override { return new WiFiDisconnectedEvent(_source); }
+};
+
+class WiFiConnectingEvent : public Event {
+public:
+    WiFiConnectingEvent(const char* source = "WiFi") : Event(source) {}
+    Type getType() const override { return Type::WiFiConnecting; }
+    Event* Clone() const override { return new WiFiConnectingEvent(_source); }
+};
+
+class WiFiReconnectEvent : public Event {
+public:
+    Type getType() const override { return Type::WiFiReconnect; }
+    Event* Clone() const override { return new WiFiReconnectEvent(*this); }
+};
+
+class WiFiFailedEvent : public Event {
+public:
+    WiFiFailedEvent(const char* source = "Unknown") : Event(source) {}
+    Type getType() const override { return Type::WiFiFailed; }
+    Event* Clone() const override { return new WiFiFailedEvent(*this); }
+};
+
+class WiFiRestoredEvent : public Event {
+public:
+    WiFiRestoredEvent(const char* source = "Unknown") : Event(source) {}
+    Type getType() const override { return Type::WiFiRestored; }
+    Event* Clone() const override { return new WiFiRestoredEvent(*this); }
+};
+
+class WiFiGotIPEvent : public Event {
+public:
+    WiFiGotIPEvent(const std::string& ip, const char* source = "WiFi")
+        : Event(source), _ip(ip) {}
+    Type getType() const override { return Type::WiFiGotIP; }
+    const std::string& getIP() const { return _ip; }
+    Event* Clone() const override { return new WiFiGotIPEvent(_ip, _source); }
 
 private:
-    std::map<Event::Type, std::vector<HandlerFunc>> _handlers;
+    std::string _ip;
 };
+
+class WiFiDisconnectedByRequestEvent : public Event {
+public:
+    WiFiDisconnectedByRequestEvent(const char* source = "WiFi") : Event(source) {}
+    Type getType() const override { return Type::WiFiDisconnected; }
+    Event* Clone() const override { return new WiFiDisconnectedByRequestEvent(_source); }
+};
+
+class WiFiShutdownEvent : public Event {
+public:
+    WiFiShutdownEvent(const char* source = "WiFi") : Event(source) {}
+    Type getType() const override { return Type::WiFiFailed; }
+    Event* Clone() const override { return new WiFiShutdownEvent(_source); }
+};
+
+class LedControlEvent : public Event {
+public:
+    LedControlEvent(LedMode mode, const char* source = "Unknown")
+        : Event(source), _mode(mode) {}
+
+    Type getType() const override { return Type::LedControl; }
+    Event* Clone() const override { return new LedControlEvent(_mode, _source); }
+    LedMode getMode() const { return _mode; }
+
+private:
+    LedMode _mode;
+};
+
+class LedStopEvent : public Event {
+public:
+    LedStopEvent(const char* source = "Unknown") : Event(source) {}
+    Type getType() const override { return Type::LedStop; }
+    Event* Clone() const override { return new LedStopEvent(_source); }
+};
+
+class DummyEvent : public Event {
+    public:
+        DummyEvent(const char* source = "System") : Event(source) {}
+        Type getType() const override { return Type::ScreenRefresh; } // oder eigener Dummy-Typ
+        Event* Clone() const override { return new DummyEvent(_source); }
+    };
 
 #endif // EVENTS_H
