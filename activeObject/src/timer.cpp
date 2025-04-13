@@ -48,9 +48,7 @@ TimerHandle_t Timer::GetHandle() {
 void Timer::timerCallback(TimerHandle_t xTimer) {
     Timer* timer = static_cast<Timer*>(pvTimerGetTimerID(xTimer));
     if (timer != nullptr && timer->_callback != nullptr) {
-        if (timer->_event != nullptr) {
-            timer->_callback(timer->_event);
-            timer->_event = nullptr;
-        }
+        timer->_callback(timer->_event);  // kann auch nullptr sein
+        timer->_event = nullptr;
     }
 }

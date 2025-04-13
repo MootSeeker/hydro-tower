@@ -35,7 +35,8 @@ public:
         WiFiShutdown, 
         WiFiDisconnectedByRequest, 
         LedControl, 
-        LedStop 
+        LedStop, 
+        TimerTick 
     };
 
     enum class Priority {

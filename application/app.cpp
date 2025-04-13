@@ -50,24 +50,6 @@ void AppStart()
     led2.Start();
     led3.Start();
 
-    // Demo: LEDs reagieren auf ButtonEvents
-    EventBus::get().subscribe(Event::Type::ButtonClicked, [](Event* e) {
-        auto* evt = static_cast<ButtonClicked*>(e);
-        if (evt->getActionType() == ButtonClicked::ActionType::SINGLE) {
-            EventBus::get().publish(new LedControlEvent(LedMode::TOGGLE, "LED-Demo"));
-        }
-        if (evt->getActionType() == ButtonClicked::ActionType::DOUBLE) {
-            EventBus::get().publish(new LedControlEvent(LedMode::BLINK_FAST, "LED-Demo"));
-        }
-        if (evt->getActionType() == ButtonClicked::ActionType::LONG) {
-            EventBus::get().publish(new LedControlEvent(LedMode::OFF, "LED-Demo"));
-        }
-
-        printf("[App] ButtonEvent: ID=%d, Type=%d\n", evt->getID(), static_cast<int>(evt->getActionType()));
-    });
-
-    EventBus::get().publish(new LedControlEvent(LedMode::TOGGLE, "Test"));
-
     wifi.Post(new OnStart("App"));
 }
 
