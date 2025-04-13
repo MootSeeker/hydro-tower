@@ -1,5 +1,6 @@
 #include "app.h"
 #include "activeObject.h"
+#include "timer.h"
 #include "events.h"
 #include "eventBus.h"
 #include <stdio.h>
@@ -32,6 +33,16 @@ void AppStart()
     static LED::LedActor led2(GPIO_NUM_12);
     static LED::LedActor led3(GPIO_NUM_13);
 
+    static Timer blinkTimer("BlinkTimer", true, [&](Event* e) {
+        static bool ledState = false;
+        ledState = !ledState;
+        if (ledState) {
+            led1.Post(new LedControlEvent(LedMode::ON, "BlinkTimer"));
+        } else {
+            led1.Post(new LedControlEvent(LedMode::OFF, "BlinkTimer"));
+        }
+    }, 0);
+
     wifi.Configure("MySSID", "MyPassword");
 
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -49,6 +60,8 @@ void AppStart()
     led1.Start();
     led2.Start();
     led3.Start();
+
+    blinkTimer.Start(pdMS_TO_TICKS(500));
 
     wifi.Post(new OnStart("App"));
 }

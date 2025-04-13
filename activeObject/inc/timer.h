@@ -23,9 +23,9 @@ class Timer
     
     private:
         std::string _timerName;
-        TimerHandle_t _timerHandle;
-        Event* _event = nullptr;
         int _identify;
+        TimerHandle_t _timerHandle;
+        Event* _event;
         std::function<void(Event*)> _callback;
     
         static void timerCallback( TimerHandle_t xTimer );
