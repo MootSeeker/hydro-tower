@@ -2,7 +2,6 @@
 #define EVENTBUS_H
 
 #include <map>
-#include <memory>
 #include <vector>
 #include <functional>
 #include "events.h"
@@ -19,7 +18,7 @@ private:
     EventBus() = default;
 
     using HandlerList = std::vector<HandlerFunc>;
-    std::map<Event::Type, std::shared_ptr<HandlerList>> _handlers;
+    std::map<Event::Type, HandlerList> _handlers;
 };
 
 #endif // EVENTBUS_H
