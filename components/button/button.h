@@ -3,6 +3,7 @@
 
 #include "activeObject.h"
 #include "events.h"
+#include "timer.h"
 #include "driver/gpio.h"
 #include <array>
 #include <memory>
@@ -26,12 +27,11 @@ private:
     volatile TickType_t _lastClickTick;
     volatile bool _eventPending = false;
     volatile bool _buttonPressed = false;
+    volatile ActionType _deferredAction = ActionType::NONE;
 
     static constexpr int DOUBLE_CLICK_GAP_MS = 300;
     static constexpr int LONG_PRESS_MS = 1000;
     static constexpr int DEBOUNCE_MS = 50;
-
-    volatile ActionType _deferredAction = ActionType::NONE;
 };
 
 class ButtonClicked : public Event {
